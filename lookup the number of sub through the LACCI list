@@ -1,0 +1,69 @@
+import cx_Oracle
+
+#function to convert list to dictionary
+def Convert(lst):
+    res_dct = {lst[i][1]: lst[i][0] for i in range(0, len(lst)-1)}
+    return res_dct
+
+#function to create the USO LACCI list to lookup in the queried dictionary
+def site_list(file_path):
+    filelacci = open(file_path,"r")
+    lines = filelacci.readlines()
+    laccilst=list()
+    for line in lines:
+        newlines = line.strip()
+        newlines = "'"+newlines+"'"
+        laccilst.append(newlines)
+    filelacci.close()
+    return laccilst
+
+#query from Oracle and write it to a .txt
+con = cx_Oracle.connect('****/*****@*****')
+print("Database version:", con.version)
+print("Oracle Python version:", cx_Oracle.version)
+cur = con.cursor()
+cur.execute("select count(distinct(imsi)),CELL_ID from ******* where call_date >= to_date('2022-05-25 00:00:00','yyyy-mm-dd HH24:MI:SS') AND call_date <= to_date('2022-05-25 23:59:59','yyyy-mm-dd HH24:MI:SS') and partner_code = '***' GROUP BY CELL_ID")
+file_ref = open("f:/char.txt","w")
+for row in cur:
+    file_ref.write(str(row))
+file_ref.close()
+
+#open the query file and create a dictionary with lacci as key and number of subs as values
+fileref = open("f:/char.txt", "r")
+content = fileref.read()
+content_modify = content.replace("(","").replace(" ", "").split(")")
+newlst =[]
+for item in content_modify:
+    y = item.split(",")
+    newlst.append(y)
+fileref.close()
+
+#using convert function to create the dictionary with lacci as key and number of subs as values
+dictlac = Convert(newlst)
+
+#using the site_list function to create the 2G3G LACCI list to lookup through
+lacci_lst = site_list("f:/lacci.txt")
+
+#lookup through the lacci list 2G3G to create a dictionary with USO sites as key and sub number as value
+finaldict ={}
+for lacci2g3g in lacci_lst:
+    if lacci2g3g in dictlac:
+        finaldict[lacci2g3g] = dictlac[lacci2g3g]
+sum_sub = 0
+for lacci in finaldict:
+    sum_sub = sum_sub + int(finaldict[lacci])
+print("number of 2G3G subs per lacci are: " ,sum_sub)    
+
+#using the site_list function to create the 4G LACCI list to lookup through
+lacci4g_lst = site_list("f:/lacci4g.txt")
+
+#lookup through the lacci list 4G to create a dictionary with USO sites as key and sub number as value  
+finaldict4g ={}
+for lac4g in lacci4g_lst:
+    if lac4g in dictlac:
+        finaldict4g[lac4g] = dictlac[lac4g]
+
+sum_sub4g = 0
+for lacci4g in finaldict4g:
+    sum_sub4g = sum_sub4g + int(finaldict4g[lacci4g])
+print("number of 4G subs per lacci are: " ,sum_sub4g) 
